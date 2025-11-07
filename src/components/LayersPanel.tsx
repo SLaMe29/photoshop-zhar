@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useEditor } from '@/context/EditorContext';
 import type { BlendMode } from '@/context/EditorContext';
 import { Button } from '@/components/ui/button';

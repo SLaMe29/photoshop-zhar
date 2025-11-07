@@ -1,4 +1,3 @@
-import React from 'react';
 import { FilterModal } from './FilterModal';
 import { useEditor, type Layer } from '@/context/EditorContext';
 import { applyKernelFilter, applyMedianFilter, applyGaussianBlur, applyLaplacianFilter, type Kernel } from '@/lib/filters';

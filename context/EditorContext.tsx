@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getAllColorSpaces, getContrast, isContrastSufficient } from '@/lib/colorSpaces';
 import type { RGB } from '@/lib/colorSpaces';
@@ -50,20 +50,20 @@ interface EditorContextType {
   // Текущий активный инструмент
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
-  
+
   // Позиция изображения (для инструмента руки)
   imagePosition: Coordinates;
   setImagePosition: (position: Coordinates) => void;
-  
+
   // Выбранные цвета (для пипетки)
   primaryColor: ColorInfo | null;
   setPrimaryColor: (color: ColorInfo | null) => void;
   secondaryColor: ColorInfo | null;
   setSecondaryColor: (color: ColorInfo | null) => void;
-  
+
   // Контраст между выбранными цветами
   getColorContrast: () => { value: number; isSufficient: boolean } | null;
-  
+
   // Слои
   layers: Layer[];
   activeLayerId: string | null;
@@ -72,7 +72,7 @@ interface EditorContextType {
   updateLayer: (layerId: string, updates: Partial<Layer>) => void;
   deleteLayer: (layerId: string) => void;
   moveLayer: (layerId: string, direction: 'up' | 'down') => void;
-  
+
   // Альфа-каналы
   alphaChannels: AlphaChannel[];
   addAlphaChannel: (channel: Omit<AlphaChannel, 'id'>) => void;
@@ -87,37 +87,37 @@ const EditorContext = createContext<EditorContextType | undefined>(undefined);
 export function EditorProvider({ children }: { children: ReactNode }) {
   // Состояние активного инструмента
   const [activeTool, setActiveTool] = useState<Tool>('hand');
-  
+
   // Состояние позиции изображения
   const [imagePosition, setImagePosition] = useState<Coordinates>({ x: 0, y: 0 });
-  
+
   // Состояние выбранных цветов
   const [primaryColor, setPrimaryColor] = useState<ColorInfo | null>(null);
   const [secondaryColor, setSecondaryColor] = useState<ColorInfo | null>(null);
-  
+
   // Состояние слоев
   const [layers, setLayers] = useState<Layer[]>([]);
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
-  
+
   // Состояние альфа-каналов
   const [alphaChannels, setAlphaChannels] = useState<AlphaChannel[]>([]);
-  
+
   // Функция для получения контраста между выбранными цветами
   const getColorContrast = () => {
     if (!primaryColor || !secondaryColor) return null;
-    
+
     const contrastValue = getContrast(primaryColor.rgb, secondaryColor.rgb);
     return {
       value: contrastValue,
       isSufficient: isContrastSufficient(contrastValue)
     };
   };
-  
+
   // Функции для работы со слоями
   const setActiveLayer = (layerId: string) => {
     setActiveLayerId(layerId);
   };
-  
+
   const addLayer = (layer: Omit<Layer, 'id'>) => {
     const newLayer: Layer = {
       ...layer,
@@ -126,13 +126,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     setLayers(prev => [...prev, newLayer]);
     setActiveLayerId(newLayer.id);
   };
-  
+
   const updateLayer = (layerId: string, updates: Partial<Layer>) => {
     setLayers(prev => prev.map(layer =>
       layer.id === layerId ? { ...layer, ...updates } : layer
     ));
   };
-  
+
   const deleteLayer = (layerId: string) => {
     setLayers(prev => {
       const filtered = prev.filter(layer => layer.id !== layerId);
@@ -144,21 +144,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       return filtered;
     });
   };
-  
+
   const moveLayer = (layerId: string, direction: 'up' | 'down') => {
     setLayers(prev => {
       const index = prev.findIndex(layer => layer.id === layerId);
       if (index === -1) return prev;
-      
+
       const newIndex = direction === 'up' ? index + 1 : index - 1;
       if (newIndex < 0 || newIndex >= prev.length) return prev;
-      
+
       const newLayers = [...prev];
       [newLayers[index], newLayers[newIndex]] = [newLayers[newIndex], newLayers[index]];
       return newLayers;
     });
   };
-  
+
   // Функции для работы с альфа-каналами
   const addAlphaChannel = (channel: Omit<AlphaChannel, 'id'>) => {
     const newChannel: AlphaChannel = {
@@ -167,17 +167,17 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     };
     setAlphaChannels(prev => [...prev, newChannel]);
   };
-  
+
   const updateAlphaChannel = (channelId: string, updates: Partial<AlphaChannel>) => {
     setAlphaChannels(prev => prev.map(channel =>
       channel.id === channelId ? { ...channel, ...updates } : channel
     ));
   };
-  
+
   const deleteAlphaChannel = (channelId: string) => {
     setAlphaChannels(prev => prev.filter(channel => channel.id !== channelId));
   };
-  
+
   const value = {
     activeTool,
     setActiveTool,
@@ -200,7 +200,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     updateAlphaChannel,
     deleteAlphaChannel
   };
-  
+
   return (
     <EditorContext.Provider value={value}>
       {children}

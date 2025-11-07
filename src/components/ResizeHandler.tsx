@@ -1,4 +1,3 @@
-import React from 'react';
 import { useEditor } from '@/context/EditorContext';
 import { ResizeModal } from '@/components/ResizeModal';
 import { resizeImage } from '@/lib/interpolation';

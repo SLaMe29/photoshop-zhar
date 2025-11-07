@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import type { MouseEvent } from 'react';
 import { useEditor } from '@/context/EditorContext';
 import { getAllColorSpaces, rgbToHex } from '@/lib/colorSpaces';
