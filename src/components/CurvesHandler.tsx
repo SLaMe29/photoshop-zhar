@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useEditor } from '@/context/EditorContext';
 import { CurvesModal } from '@/components/CurvesModal';
 

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { MouseEvent } from 'react';
 import { useEditor } from '@/context/EditorContext';
 import { getAllColorSpaces, rgbToHex } from '@/lib/colorSpaces';
@@ -17,6 +17,45 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+
+  const clampValue = useCallback((value: number, min: number, max: number) => {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }, []);
+
+  const clampOffset = useCallback(
+    (nextOffset: { x: number; y: number }, currentOffset?: { x: number; y: number }) => {
+      if (!canvasRef.current) {
+        return nextOffset;
+      }
+
+      const canvas = canvasRef.current;
+      const scaleFactor = zoomLevel / 100;
+      const scaledWidth = canvasSize.width * scaleFactor;
+      const scaledHeight = canvasSize.height * scaleFactor;
+
+      const baseOffsetX = (canvas.width - scaledWidth) / 2;
+      const baseOffsetY = (canvas.height - scaledHeight) / 2;
+
+      const maxOffsetX = Math.abs(baseOffsetX);
+      const maxOffsetY = Math.abs(baseOffsetY);
+
+      const clampedX = clampValue(nextOffset.x, -maxOffsetX, maxOffsetX);
+      const clampedY = clampValue(nextOffset.y, -maxOffsetY, maxOffsetY);
+
+      if (currentOffset && clampedX === currentOffset.x && clampedY === currentOffset.y) {
+        return currentOffset;
+      }
+
+      if (clampedX === nextOffset.x && clampedY === nextOffset.y) {
+        return nextOffset;
+      }
+
+      return { x: clampedX, y: clampedY };
+    },
+    [canvasSize.height, canvasSize.width, clampValue, zoomLevel]
+  );
   
   const {
     activeTool,
@@ -74,6 +113,10 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
       setImageOffset({ x: 0, y: 0 });
     }
   }, [layers.length, canvasSize.width, canvasSize.height]); // Убираем zoomLevel из зависимостей
+
+  useEffect(() => {
+    setImageOffset(prev => clampOffset(prev));
+  }, [clampOffset]);
   
   // Функция для отрисовки всех слоев
   const drawLayers = useCallback(() => {
@@ -156,6 +199,8 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
       
+      setImageOffset(prev => clampOffset(prev, prev));
+
       // Redraw image after resize
       drawLayers();
     };
@@ -166,7 +211,7 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
     resizeObserver.observe(container);
     
     return () => resizeObserver.disconnect();
-  }, [drawLayers]);
+  }, [clampOffset, drawLayers]);
   
   
   // Перерисовываем при изменении слоев или зума
@@ -184,19 +229,19 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
       switch (e.key) {
         case 'ArrowUp':
           e.preventDefault();
-          setImageOffset(prev => ({ x: prev.x, y: prev.y + step }));
+          setImageOffset(prev => clampOffset({ x: prev.x, y: prev.y + step }, prev));
           break;
         case 'ArrowDown':
           e.preventDefault();
-          setImageOffset(prev => ({ x: prev.x, y: prev.y - step }));
+          setImageOffset(prev => clampOffset({ x: prev.x, y: prev.y - step }, prev));
           break;
         case 'ArrowLeft':
           e.preventDefault();
-          setImageOffset(prev => ({ x: prev.x + step, y: prev.y }));
+          setImageOffset(prev => clampOffset({ x: prev.x + step, y: prev.y }, prev));
           break;
         case 'ArrowRight':
           e.preventDefault();
-          setImageOffset(prev => ({ x: prev.x - step, y: prev.y }));
+          setImageOffset(prev => clampOffset({ x: prev.x - step, y: prev.y }, prev));
           break;
       }
     };
@@ -216,10 +261,10 @@ export function LayeredCanvas({ zoomLevel, onZoomChange }: LayeredCanvasProps) {
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
       
-      setImageOffset(prev => ({
+      setImageOffset(prev => clampOffset({
         x: prev.x + dx,
         y: prev.y + dy
-      }));
+      }, prev));
       
       setDragStart({ x: e.clientX, y: e.clientY });
     };

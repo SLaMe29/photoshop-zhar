@@ -1,3 +1,4 @@
+import React from 'react';
 import { useEditor } from '@/context/EditorContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { colorSpaceInfo } from '@/lib/colorSpaces';

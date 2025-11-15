@@ -1,68 +1,75 @@
 // GB7 формат энкодер
 // Структура файла: заголовок + данные изображения
 
-interface GB7Header {
-  signature: string; // 'GB7'
-  version: number;   // версия формата
-  width: number;     // ширина изображения
-  height: number;    // высота изображения
-  channels: number;  // количество каналов (обычно 4 для RGBA)
-  compression: number; // тип сжатия (0 = без сжатия)
-}
+const GB7_SIGNATURE = new Uint8Array([0x47, 0x42, 0x37, 0x1d]);
+const GB7_VERSION = 1;
+const HEADER_SIZE = 12;
+const MAX_DIMENSION = 0xffff;
+const ALPHA_THRESHOLD = 128;
 
 // Функция для кодирования ImageData в GB7 формат
 export function encodeGB7(imageData: ImageData): Uint8Array {
   const { width, height, data } = imageData;
-  
-  // Создаем заголовок
-  const header: GB7Header = {
-    signature: 'GB7',
-    version: 1,
-    width,
-    height,
-    channels: 4, // RGBA
-    compression: 0 // без сжатия
-  };
+  const pixelCount = width * height;
 
-  // Вычисляем размер заголовка
-  const headerSize = 3 + 1 + 4 + 4 + 1 + 1; // signature(3) + version(1) + width(4) + height(4) + channels(1) + compression(1)
-  const dataSize = data.length;
-  const totalSize = headerSize + dataSize;
+  if (width === 0 || height === 0) {
+    throw new Error('Размер изображения не может быть 0');
+  }
 
-  // Создаем буфер для всего файла
-  const buffer = new ArrayBuffer(totalSize);
-  const view = new DataView(buffer);
-  const uint8View = new Uint8Array(buffer);
+  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+    throw new Error('Размеры изображения превышают допустимый предел формата GB7 (65535 × 65535)');
+  }
 
-  let offset = 0;
+  if (data.length !== pixelCount * 4) {
+    throw new Error('Некорректные данные изображения для кодировщика GB7');
+  }
 
-  // Записываем заголовок
-  // Signature (3 байта)
-  uint8View[offset++] = header.signature.charCodeAt(0); // 'G'
-  uint8View[offset++] = header.signature.charCodeAt(1); // 'B'
-  uint8View[offset++] = header.signature.charCodeAt(2); // '7'
+  const grayscaleData = new Uint8Array(pixelCount);
+  const alphaMask = new Uint8Array(pixelCount);
 
-  // Version (1 байт)
-  view.setUint8(offset++, header.version);
+  let hasTransparentPixel = false;
 
-  // Width (4 байта, little-endian)
-  view.setUint32(offset, header.width, true);
-  offset += 4;
+  for (let i = 0; i < pixelCount; i++) {
+    const offset = i * 4;
+    const r = data[offset];
+    const g = data[offset + 1];
+    const b = data[offset + 2];
+    const a = data[offset + 3];
 
-  // Height (4 байта, little-endian)
-  view.setUint32(offset, header.height, true);
-  offset += 4;
+    const grayscale = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+    const grayscale7Bit = Math.max(0, Math.min(127, Math.round(grayscale * 127 / 255)));
 
-  // Channels (1 байт)
-  view.setUint8(offset++, header.channels);
+    grayscaleData[i] = grayscale7Bit;
 
-  // Compression (1 байт)
-  view.setUint8(offset++, header.compression);
+    const alphaBit = a >= ALPHA_THRESHOLD ? 1 : 0;
+    alphaMask[i] = alphaBit;
 
-  // Записываем данные изображения
-  uint8View.set(data, offset);
+    if (alphaBit === 0) {
+      hasTransparentPixel = true;
+    }
+  }
 
-  return new Uint8Array(buffer);
+  const hasMask = hasTransparentPixel;
+  const buffer = new Uint8Array(HEADER_SIZE + pixelCount);
+
+  buffer.set(GB7_SIGNATURE, 0);
+  buffer[4] = GB7_VERSION;
+  buffer[5] = hasMask ? 0x01 : 0x00;
+
+  const headerView = new DataView(buffer.buffer);
+  headerView.setUint16(6, width, false);
+  headerView.setUint16(8, height, false);
+  headerView.setUint16(10, 0, false);
+
+  if (hasMask) {
+    for (let i = 0; i < pixelCount; i++) {
+      buffer[HEADER_SIZE + i] = (alphaMask[i] << 7) | grayscaleData[i];
+    }
+  } else {
+    buffer.set(grayscaleData, HEADER_SIZE);
+  }
+
+  return buffer;
 }
 
 // Функция для создания Blob из GB7 данных

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -98,50 +98,104 @@ export function CurvesModal({
   };
 
   const validateInput = (value: number): string | undefined => {
-    if (isNaN(value) || value < 0 || value > 255) {
+    if (Number.isNaN(value) || value < 0 || value > 255) {
       return 'Значение должно быть от 0 до 255';
     }
     return undefined;
   };
 
+  const computeErrors = useCallback(
+    (nextPoint1: CurvePoint, nextPoint2: CurvePoint) => {
+      const nextErrors: {
+        point1Input?: string;
+        point1Output?: string;
+        point2Input?: string;
+        point2Output?: string;
+      } = {};
+
+      const point1InputError = validateInput(nextPoint1.input);
+      const point1OutputError = validateInput(nextPoint1.output);
+      const point2InputError = validateInput(nextPoint2.input);
+      const point2OutputError = validateInput(nextPoint2.output);
+
+      if (point1InputError) {
+        nextErrors.point1Input = point1InputError;
+      }
+      if (point1OutputError) {
+        nextErrors.point1Output = point1OutputError;
+      }
+      if (point2InputError) {
+        nextErrors.point2Input = point2InputError;
+      }
+      if (point2OutputError) {
+        nextErrors.point2Output = point2OutputError;
+      }
+
+      if (!point1InputError && !point2InputError && nextPoint1.input >= nextPoint2.input) {
+        const orderError = 'Вход первой точки должен быть меньше входа второй';
+        nextErrors.point1Input = orderError;
+        nextErrors.point2Input = orderError;
+      }
+
+      return nextErrors;
+    },
+    []
+  );
+
   const handlePoint1InputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     const error = validateInput(value);
     
-    setErrors(prev => ({ ...prev, point1Input: error }));
-    if (!error) {
-      setPoint1(prev => ({ ...prev, input: value }));
+    if (error) {
+      setErrors(prev => ({ ...prev, point1Input: error }));
+      return;
     }
+    
+    const nextPoint1 = { ...point1, input: value };
+    setPoint1(nextPoint1);
+    setErrors(computeErrors(nextPoint1, point2));
   };
 
   const handlePoint1OutputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     const error = validateInput(value);
     
-    setErrors(prev => ({ ...prev, point1Output: error }));
-    if (!error) {
-      setPoint1(prev => ({ ...prev, output: value }));
+    if (error) {
+      setErrors(prev => ({ ...prev, point1Output: error }));
+      return;
     }
+    
+    const nextPoint1 = { ...point1, output: value };
+    setPoint1(nextPoint1);
+    setErrors(computeErrors(nextPoint1, point2));
   };
 
   const handlePoint2InputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     const error = validateInput(value);
     
-    setErrors(prev => ({ ...prev, point2Input: error }));
-    if (!error) {
-      setPoint2(prev => ({ ...prev, input: value }));
+    if (error) {
+      setErrors(prev => ({ ...prev, point2Input: error }));
+      return;
     }
+    
+    const nextPoint2 = { ...point2, input: value };
+    setPoint2(nextPoint2);
+    setErrors(computeErrors(point1, nextPoint2));
   };
 
   const handlePoint2OutputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     const error = validateInput(value);
     
-    setErrors(prev => ({ ...prev, point2Output: error }));
-    if (!error) {
-      setPoint2(prev => ({ ...prev, output: value }));
+    if (error) {
+      setErrors(prev => ({ ...prev, point2Output: error }));
+      return;
     }
+    
+    const nextPoint2 = { ...point2, output: value };
+    setPoint2(nextPoint2);
+    setErrors(computeErrors(point1, nextPoint2));
   };
 
   const handleReset = () => {

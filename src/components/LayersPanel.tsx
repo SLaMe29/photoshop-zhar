@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useEditor } from '@/context/EditorContext';
 import type { BlendMode } from '@/context/EditorContext';
 import { Button } from '@/components/ui/button';
@@ -209,6 +209,8 @@ export function LayersPanel() {
     setShowAddModal(false);
   };
   
+  const orderedLayers = useMemo(() => [...layers].reverse(), [layers]);
+
   return (
     <div className="w-80 bg-background border-l flex flex-col h-full">
       {/* Заголовок панели */}
@@ -233,16 +235,21 @@ export function LayersPanel() {
       {/* Список слоев */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-2 space-y-2">
-          {layers.map((layer, index) => (
-            <div
-              key={layer.id}
-              className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                layer.id === activeLayerId 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-              onClick={() => setActiveLayer(layer.id)}
-            >
+          {orderedLayers.map((layer) => {
+            const originalIndex = layers.findIndex(originalLayer => originalLayer.id === layer.id);
+            const isTopLayer = originalIndex === layers.length - 1;
+            const isBottomLayer = originalIndex === 0;
+
+            return (
+              <div
+                key={layer.id}
+                className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                  layer.id === activeLayerId 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => setActiveLayer(layer.id)}
+              >
               {/* Превью и основная информация */}
               <div className="flex items-center gap-3 mb-3">
                 {/* Превью слоя */}
@@ -291,7 +298,7 @@ export function LayersPanel() {
                         e.stopPropagation();
                         moveLayer(layer.id, 'up');
                       }}
-                      disabled={index === layers.length - 1}
+                      disabled={isTopLayer}
                       className="h-6 w-6 p-0"
                     >
                       <ArrowUp className="w-3 h-3" />
@@ -305,7 +312,7 @@ export function LayersPanel() {
                         e.stopPropagation();
                         moveLayer(layer.id, 'down');
                       }}
-                      disabled={index === 0}
+                      disabled={isBottomLayer}
                       className="h-6 w-6 p-0"
                     >
                       <ArrowDown className="w-3 h-3" />
@@ -373,8 +380,9 @@ export function LayersPanel() {
                   </TooltipContent>
                 </Tooltip>
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
           
           {layers.length === 0 && (
             <div className="text-center text-muted-foreground py-8">

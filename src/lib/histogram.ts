@@ -44,8 +44,8 @@ export function createLookupTable(point1: CurvePoint, point2: CurvePoint): Uint8
   // Ensure points are ordered by input value
   const [p1, p2] = point1.input <= point2.input ? [point1, point2] : [point2, point1];
   
-  // Calculate slope for the main segment
-  const slope = (p2.output - p1.output) / (p2.input - p1.input);
+  const inputDelta = p2.input - p1.input;
+  const slope = inputDelta === 0 ? 0 : (p2.output - p1.output) / inputDelta;
   
   for (let i = 0; i < 256; i++) {
     if (i <= p1.input) {
@@ -54,6 +54,9 @@ export function createLookupTable(point1: CurvePoint, point2: CurvePoint): Uint8
     } else if (i >= p2.input) {
       // Right horizontal line
       lut[i] = Math.max(0, Math.min(255, p2.output));
+    } else if (inputDelta === 0) {
+      const averageOutput = Math.round((p1.output + p2.output) / 2);
+      lut[i] = Math.max(0, Math.min(255, averageOutput));
     } else {
       // Linear interpolation between points
       const output = p1.output + slope * (i - p1.input);

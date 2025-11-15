@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 import { getAllColorSpaces, getContrast, isContrastSufficient } from '@/lib/colorSpaces';
 import type { RGB } from '@/lib/colorSpaces';

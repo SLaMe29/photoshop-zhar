@@ -229,9 +229,9 @@ export function ResizeModal({
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="flex justify-between text-sm">
-            <span>Исходный размер: {originalMegapixels} МП ({originalWidth} × {originalHeight})</span>
-            <span>Новый размер: {newMegapixels} МП ({width} × {height})</span>
+          <div className="flex justify-between text-sm gap-4">
+            <span className="whitespace-nowrap">Исходный размер: {originalMegapixels} МП ({originalWidth} × {originalHeight})</span>
+            <span className="whitespace-nowrap">Новый размер: {newMegapixels} МП ({width} × {height})</span>
           </div>
           
           <div className="grid grid-cols-4 items-center gap-4">
